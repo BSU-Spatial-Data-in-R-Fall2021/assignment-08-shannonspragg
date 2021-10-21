@@ -1,6 +1,6 @@
 ---
 title: "Making static maps"
-author: "Matt Williamson"
+author: "Shannon Spragg"
 date: "10/20/2021"
 output: html_document
 ---
@@ -22,11 +22,78 @@ _By the end of the assignment_ you should have several static maps displaying th
 
 # Task 1: Show me your ugly maps!!
 Find 2 examples of maps that you think are 'bad'. 
+
+```{r bad maps}
+install.packages("knitr")
+# include_graphics(path, auto_pdf = getOption("/Users/shannonspragg/Desktop/badmap1.png", FALSE), 
+#    dpi = NULL)
+![Bad Map Numero Uno](/Users/shannonspragg/Desktop/badmap1.png)
+
+```
+
 _Question 1_ Why are they bad? What might improve them? 
 _Question 2_ Rely on the Healy and Wilke texts to provide some structure to your answers.
 
+```{r load packages}
+install.packages("pander")
+
+library(tidyverse)
+library(pander)
+library(terra)
+library(sf)
+library(units)
+library(ggmap)
+library(cartogram)
+library(patchwork)
+library(tmap)
+library(viridis)
+library(tigris)
+```
+
 # Task 2: Load your libraries and build a dataframe
 You can choose whichever datasets you'd like from the past several months as the subject for your mapping. You'll need to use at least one tabular join, one spatial join, and one extraction to create the dataframe. Load the packages, the data, and make sure everything is projected here. Give me a sense for what you are hoping to map.
+```{r load data libraries}
+# Load the Data: NOTE: Use data other than landvalue - only for ID...
+landval <- terra::rast('/opt/data/session04/idval.tif')
+mammal.rich <- rast('/opt/data/session16/Mammals_total_richness.tif')
+mammal.rich <- catalyze(mammal.rich) #rmemeber we had to get the layer we wanted from the richness data
+mammal.rich <- mammal.rich[[2]]
+
+pas.desig <- st_read('/opt/data/session04/regionalPAs1.shp')
+pas.reg <- st_read('/opt/data/session16/reg_pas.shp')
+
+colnames(pas.reg)[c(1, 6, 8, 10, 12, 22, 25)] <- colnames(pas.desig) #find the columnames in the proc dataset and replace them with the almost matching names from the des.
+gap.sts <- c("1", "2", "3") 
+# Now filter to the western state PA's
+utah.pas <- pas.reg %>% 
+  select(., colnames(pas.desig)) %>% 
+  bind_rows(pas.desig, pas.reg) %>%  #select the columns that match and then combine
+  filter(., State_Nm == "UT" & GAP_Sts %in% gap.sts ) %>% st_make_valid() %>% st_buffer(., 10000)
+#Buffering here to deal with some of the linear features along rivers
+
+# Bring in Utah .shp:
+utah <- tigris::states(cb=TRUE) %>% 
+  filter(STUSPS == "UT") 
+plot(st_geometry(utah))
+```
+
+```{r check projections}
+# Here we need to check CRS and match all to the largest raster:
+st_crs(mammal.rich)$proj4string
+st_crs(landval)$proj4string
+st_crs(pas)$proj4string
+
+pa.vect <- as(utah.pas, "SpatVector")
+utah.vect <- as(utah, "SpatVector")
+
+pa.vect <- project(pa.vect, mammal.rich)
+utah.vect <- project(utah.vect, mammal.rich)
+
+land.val.proj <- project(landval, mammal.rich)
+
+mam.rich.crop <- crop(mammal.rich, utah.vect)
+utah.val.crop <- crop(land.val.proj, utah.vect)
+```
 
 
 # Task 3: Build a map with Tmap
