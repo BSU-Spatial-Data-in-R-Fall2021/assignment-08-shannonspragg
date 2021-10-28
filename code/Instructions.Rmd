@@ -23,16 +23,14 @@ _By the end of the assignment_ you should have several static maps displaying th
 # Task 1: Show me your ugly maps!!
 Find 2 examples of maps that you think are 'bad'. 
 
-```{r bad maps}
-install.packages("knitr")
-# include_graphics(path, auto_pdf = getOption("/Users/shannonspragg/Desktop/badmap1.png", FALSE), 
-#    dpi = NULL)
-![Bad Map Numero Uno](/Users/shannonspragg/Desktop/badmap1.png)
-
-```
-
+![Bad Map Numero Uno]("/Users/shannonspragg/Desktop/Boise State/BSU Research Lab/R Tools/Spatial Data in R/HW Figures/badmap1.png")
+![Bad Map Numba Two]("/Users/shannonspragg/Desktop/Boise State/BSU Research Lab/R Tools/Spatial Data in R/HW Figures/bad map2.jpeg)
 _Question 1_ Why are they bad? What might improve them? 
+The first map, on tracking the west nile virus, is trying to show the states with highest cases - however, it almost morphs the map so badly that you can't tell what state is which, and cannot see states behind the tallest ones. Given that it is just trying to track highest numbers, maybe a color shade would be easier to see.
+The second map attempts to show state capital population size with bubbles, but doesn't do a great job as some of the circles are so large - they cover the map, and you cannot tell which state they're even from. This seems to be another density issue where if they are trying to compare numbers, maybe shading or color could better reflect the state capitols with the most people.
+
 _Question 2_ Rely on the Healy and Wilke texts to provide some structure to your answers.
+
 
 ```{r load packages}
 install.packages("pander")
