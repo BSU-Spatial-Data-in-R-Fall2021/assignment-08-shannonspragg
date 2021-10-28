@@ -30,8 +30,6 @@ The first map, on tracking the west nile virus, is trying to show the states wit
 The second map attempts to show state capital population size with bubbles, but doesn't do a great job as some of the circles are so large - they cover the map, and you cannot tell which state they're even from. This seems to be another density issue where if they are trying to compare numbers, maybe shading or color could better reflect the state capitols with the most people.
 
 _Question 2_ Rely on the Healy and Wilke texts to provide some structure to your answers.
-
-
 ```{r load packages}
 install.packages("pander")
 install.packages("ggspatial")
@@ -139,7 +137,24 @@ library(tmap)
 Your map should have a basemap, should rely on more than one aesthetic (color, transparency, etc), and combine multiple layers.
 ```{r build chloropleth}
 # Use ggplot to make Chloropleth below:
+c.map.1 <- ggplot(ut.census) + 
+  geom_sf(aes(fill=medianincome))
 
+install.packages("classInt")
+library(classInt)
+install.packages("RColorBrewer")
+library(RColorBrewer)
+pal <- brewer.pal(7, "OrRd") # select 7 colors from the palette
+class(pal)
+
+# get quantile breaks. Add .00001 offset to catch the lowest value
+breaks_qt <- classIntervals(c(min(ut.census$medianincome) - .00001, ut.census$medianincome), n = 7, style = "quantile")
+
+ut.inc.q <- mutate(ut.census, median_inc_cat = cut(medianincome, breaks_qt$brks)) 
+
+ut.inc.map <- ggplot(ut.inc.q) + 
+    geom_sf(aes(fill=median_inc_cat)) +
+    scale_fill_brewer(palette = "OrRd") 
 ```
 
 
@@ -157,7 +172,7 @@ main.map.inc <- ggmap(bg) +
   coord_sf(crs = st_crs(4326)) +
   annotation_scale(location = "tl") +
   annotation_north_arrow(location = "br", which_north = "true") +
-  ggtitle("PAs in Idaho") +
+  ggtitle("PAs in Utah") +
   theme(legend.direction = "horizontal", legend.position = "bottom", legend.justification = "center") +
   theme_bw()
 not.conus <- c("AK", "HI", "DC", "MP", "GU", "VI", "AS", "PR")
@@ -207,9 +222,11 @@ ggsave("insetmap.png", plot=complete)
 ```
 
 _Question 3:_ Reflect on the different maps you've made, what do the different visualizations tell you about the data you plotted?
+I think it was interesting to see all of the different ways to map data, being able to visualize the variance in income level, population number, etc by county. This is especially cool to see with the PA polygons overlayed on top.
 
 _Question 4:_ How might you improve the maps you've made?
+I think that I could definately tweak the size of the north arrow and scale bar, and probably would like to adjust the values listed in the legend (mostly aesthetic things). And I could probably find "more interesting" census variables to showcase.
 
 _Question 5:_ Is a map the best way to evaluate the data you worked with? Why or Why not?
-
+A map is a helpful way to look at what data looks like in space (and maybe specific regions with heavy overlap of variables), however, this doesn't really evaluate or analyze the actual interactions of these variables (which would let us draw actual legitimate conclusions).
 
