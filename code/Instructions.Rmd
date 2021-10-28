@@ -23,8 +23,8 @@ _By the end of the assignment_ you should have several static maps displaying th
 # Task 1: Show me your ugly maps!!
 Find 2 examples of maps that you think are 'bad'. 
 
-![Bad Map Numero Uno]("/Users/shannonspragg/Desktop/Boise State/BSU Research Lab/R Tools/Spatial Data in R/HW Figures/badmap1.png")
-![Bad Map Numba Two]("/Users/shannonspragg/Desktop/Boise State/BSU Research Lab/R Tools/Spatial Data in R/HW Figures/bad map2.jpeg)
+![Bad Map Numero Uno](~/R/assignment-08-shannonspragg/data/badmap1.png)
+![Bad Map Numba Two](~/R/assignment-08-shannonspragg/data/bad map2.jpeg)
 _Question 1_ Why are they bad? What might improve them? 
 The first map, on tracking the west nile virus, is trying to show the states with highest cases - however, it almost morphs the map so badly that you can't tell what state is which, and cannot see states behind the tallest ones. Given that it is just trying to track highest numbers, maybe a color shade would be easier to see.
 The second map attempts to show state capital population size with bubbles, but doesn't do a great job as some of the circles are so large - they cover the map, and you cannot tell which state they're even from. This seems to be another density issue where if they are trying to compare numbers, maybe shading or color could better reflect the state capitols with the most people.
@@ -34,7 +34,8 @@ _Question 2_ Rely on the Healy and Wilke texts to provide some structure to your
 
 ```{r load packages}
 install.packages("pander")
-
+install.packages("ggspatial")
+install.packages("ggplot2")
 library(tidyverse)
 library(pander)
 library(terra)
@@ -46,16 +47,23 @@ library(patchwork)
 library(tmap)
 library(viridis)
 library(tigris)
+library(ggspatial)
+library(ggplot2)
+library(tidycensus)
 ```
 
 # Task 2: Load your libraries and build a dataframe
 You can choose whichever datasets you'd like from the past several months as the subject for your mapping. You'll need to use at least one tabular join, one spatial join, and one extraction to create the dataframe. Load the packages, the data, and make sure everything is projected here. Give me a sense for what you are hoping to map.
+
+I am choosing to bring in the human modification index, mammal richness, and protected areas for Utah. I think it would be interesting to see the mammal richness and hmi values in relation to the protected areas that exist in Utah.
 ```{r load data libraries}
 # Load the Data: NOTE: Use data other than landvalue - only for ID...
-landval <- terra::rast('/opt/data/session04/idval.tif')
-mammal.rich <- rast('/opt/data/session16/Mammals_total_richness.tif')
+human.mod.rast <- rast('/opt/data/session08/hmi.tif')
+mammal.rich <- terra::rast('/opt/data/session16/Mammals_total_richness.tif')
 mammal.rich <- catalyze(mammal.rich) #rmemeber we had to get the layer we wanted from the richness data
 mammal.rich <- mammal.rich[[2]]
+plot(mammal.rich)
+plot(human.mod.rast)
 
 pas.desig <- st_read('/opt/data/session04/regionalPAs1.shp')
 pas.reg <- st_read('/opt/data/session16/reg_pas.shp')
@@ -73,12 +81,13 @@ utah.pas <- pas.reg %>%
 utah <- tigris::states(cb=TRUE) %>% 
   filter(STUSPS == "UT") 
 plot(st_geometry(utah))
+
 ```
 
 ```{r check projections}
 # Here we need to check CRS and match all to the largest raster:
 st_crs(mammal.rich)$proj4string
-st_crs(landval)$proj4string
+st_crs(human.mod.rast)$proj4string
 st_crs(pas)$proj4string
 
 pa.vect <- as(utah.pas, "SpatVector")
@@ -87,22 +96,115 @@ utah.vect <- as(utah, "SpatVector")
 pa.vect <- project(pa.vect, mammal.rich)
 utah.vect <- project(utah.vect, mammal.rich)
 
-land.val.proj <- project(landval, mammal.rich)
+hmi.proj <- project(human.mod.rast, mammal.rich)
 
 mam.rich.crop <- crop(mammal.rich, utah.vect)
-utah.val.crop <- crop(land.val.proj, utah.vect)
+utah.hmi.crop <- crop(hmi.proj, utah.vect)
+
+plot(mam.rich.crop)
+plot(utah.hmi.crop)
+plot(pa.vect, add = TRUE)
+```
+```{r census data ut}
+# Let's bring in the UT census data:
+ut.census <- tidycensus:: get_acs(geography = "county", 
+              variables = c(medianincome = "B19013_001",
+                            pop = "B01003_001"),
+              state = c("UT"), 
+              year = 2018,
+              key = key,
+              geometry = TRUE) %>% 
+                st_transform(., crs = st_crs(mam.rich.crop)) %>% 
+  dplyr::select(-moe) %>% 
+  spread(variable, estimate)
 ```
 
 
 # Task 3: Build a map with Tmap
 Practice making a quick map with tmap. 
+```{r using tmap}
+# Practicing using tmap!
+library(tmap)
+  tmap_ut1 =  tm_shape(utah) + tm_polygons()
+  tmap_mode("view") # pulls this up in viewer
+  tmap_ut1
 
+  tmap_ut2 <- tm_shape(mam.rich.crop) + tm_raster()
+  tmap_mode("view") # pulls this up in viewer
+  tmap_ut2
+
+```
 
 # Task 4: Build a choropleth with ggplot
 Your map should have a basemap, should rely on more than one aesthetic (color, transparency, etc), and combine multiple layers.
+```{r build chloropleth}
+# Use ggplot to make Chloropleth below:
+
+```
+
 
 # Task 5: Build 2 cartograms
 Follow the examples to build cartograms that display your region of interest based on variables other than area.
+```{r building two cartograms}
+bg <- ggmap::get_map(as.vector(st_bbox(st_transform(utah, 4326))), zoom = 7)
+
+# Let's make the main map for median income here:
+library(ggplot2)
+main.map.inc <- ggmap(bg) +
+  geom_sf(data = st_transform(ut.census, 4326), mapping = aes(fill = medianincome), inherit.aes = FALSE) +
+  geom_sf(data=st_transform(utah.pas, 4326), color="yellow", fill=NA, inherit.aes = FALSE) +
+  scale_fill_continuous() +
+  coord_sf(crs = st_crs(4326)) +
+  annotation_scale(location = "tl") +
+  annotation_north_arrow(location = "br", which_north = "true") +
+  ggtitle("PAs in Idaho") +
+  theme(legend.direction = "horizontal", legend.position = "bottom", legend.justification = "center") +
+  theme_bw()
+not.conus <- c("AK", "HI", "DC", "MP", "GU", "VI", "AS", "PR")
+
+conus <- states() %>% 
+  filter(., !(STUSPS %in% not.conus)) %>% 
+  st_transform(., 4326)
+
+bbox <- st_as_sfc(st_bbox(st_transform(utah, 4326)))
+
+inset.map <- ggplot(conus)+
+  geom_sf(fill="lightgray", color="black") +
+  geom_sf(data =  st_as_sfc(st_bbox(st_transform(utah, 4326))),fill=NA, color = "red") 
+
+complete.map <- main.map + inset_element(inset.map, left = 0.6, bottom = 0.6, right = 1, top = 1, align_to = "full")
+
+ggsave("insetmap.png", plot=complete)
+
+# Now let's try this with another vairiable:
+
+main.map.pop <- ggmap(bg) +
+  geom_sf(data = st_transform(ut.census, 4326), mapping = aes(fill = pop), inherit.aes = FALSE) +
+  geom_sf(data=st_transform(utah.pas, 4326), color="yellow", fill=NA, inherit.aes = FALSE) +
+  scale_fill_continuous() +
+  coord_sf(crs = st_crs(4326)) +
+  annotation_scale(location = "tl") +
+  annotation_north_arrow(location = "br", which_north = "true") +
+  ggtitle("PAs in Idaho") +
+  theme(legend.direction = "horizontal", legend.position = "bottom", legend.justification = "center") +
+  theme_bw()
+not.conus <- c("AK", "HI", "DC", "MP", "GU", "VI", "AS", "PR")
+
+conus <- states() %>% 
+  filter(., !(STUSPS %in% not.conus)) %>% 
+  st_transform(., 4326)
+
+bbox <- st_as_sfc(st_bbox(st_transform(utah, 4326)))
+
+inset.map <- ggplot(conus)+
+  geom_sf(fill="lightgray", color="black") +
+  geom_sf(data =  st_as_sfc(st_bbox(st_transform(utah, 4326))),fill=NA, color = "red") 
+
+complete.map <- main.map + inset_element(inset.map, left = 0.6, bottom = 0.6, right = 1, top = 1, align_to = "full")
+
+ggsave("insetmap.png", plot=complete)
+
+```
 
 _Question 3:_ Reflect on the different maps you've made, what do the different visualizations tell you about the data you plotted?
 
