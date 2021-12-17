@@ -31,9 +31,6 @@ The second map attempts to show state capital population size with bubbles, but 
 
 _Question 2_ Rely on the Healy and Wilke texts to provide some structure to your answers.
 ```{r load packages}
-install.packages("pander")
-install.packages("ggspatial")
-install.packages("ggplot2")
 library(tidyverse)
 library(pander)
 library(terra)
@@ -86,7 +83,7 @@ plot(st_geometry(utah))
 # Here we need to check CRS and match all to the largest raster:
 st_crs(mammal.rich)$proj4string
 st_crs(human.mod.rast)$proj4string
-st_crs(pas)$proj4string
+st_crs(pas)$proj4string #doesn't exist
 
 pa.vect <- as(utah.pas, "SpatVector")
 utah.vect <- as(utah, "SpatVector")
@@ -130,7 +127,7 @@ library(tmap)
   tmap_ut2 <- tm_shape(mam.rich.crop) + tm_raster()
   tmap_mode("view") # pulls this up in viewer
   tmap_ut2
-
+#MW: this is just a gray map of utah
 ```
 
 # Task 4: Build a choropleth with ggplot
@@ -140,7 +137,7 @@ Your map should have a basemap, should rely on more than one aesthetic (color, t
 c.map.1 <- ggplot(ut.census) + 
   geom_sf(aes(fill=medianincome))
 
-install.packages("classInt")
+install.packages("classInt")# DON"T INSTALL PACKAGES IN YOUR SCRIPT
 library(classInt)
 install.packages("RColorBrewer")
 library(RColorBrewer)
@@ -156,7 +153,7 @@ ut.inc.map <- ggplot(ut.inc.q) +
     geom_sf(aes(fill=median_inc_cat)) +
     scale_fill_brewer(palette = "OrRd") 
 ```
-
+_MW: this is only a single aesthetic so does not follow the instructions_
 
 # Task 5: Build 2 cartograms
 Follow the examples to build cartograms that display your region of interest based on variables other than area.
@@ -187,8 +184,8 @@ inset.map <- ggplot(conus)+
   geom_sf(fill="lightgray", color="black") +
   geom_sf(data =  st_as_sfc(st_bbox(st_transform(utah, 4326))),fill=NA, color = "red") 
 
-complete.map <- main.map + inset_element(inset.map, left = 0.6, bottom = 0.6, right = 1, top = 1, align_to = "full")
-
+complete.map <- main.map.inc + inset_element(inset.map, left = 0.6, bottom = 0.6, right = 1, top = 1, align_to = "full")
+#had to adjust because the main map had the wrong name
 ggsave("insetmap.png", plot=complete)
 
 # Now let's try this with another vairiable:
@@ -220,7 +217,7 @@ complete.map <- main.map + inset_element(inset.map, left = 0.6, bottom = 0.6, ri
 ggsave("insetmap.png", plot=complete)
 
 ```
-
+_MW: these are not cartograms_
 _Question 3:_ Reflect on the different maps you've made, what do the different visualizations tell you about the data you plotted?
 I think it was interesting to see all of the different ways to map data, being able to visualize the variance in income level, population number, etc by county. This is especially cool to see with the PA polygons overlayed on top.
 
